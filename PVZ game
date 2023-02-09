@@ -1,0 +1,205 @@
+import pygame, sys, random
+from pygame.locals import*
+
+pygame.init()
+pygame.time.delay(1000)
+X = 1200
+Y = 800
+S = pygame.display.set_mode((X, Y))
+pygame.display.set_caption('Hello World')
+
+
+#            R    G    B
+GREY     = (100, 100, 100)
+BLUE     = (  0,   0, 255)
+NAVYBLUE = ( 60,  60,  60)
+WHITE    = (255, 255, 255)
+RED      = (255,   0,   0)
+GREEN    = (  0, 255,   0)
+YELLOW   = (255, 255,   0)
+ORANGE   = (255, 128,   0)
+PURPLE   = (255,   0, 255)
+CYAN     = (  0, 255, 255)
+PINK     = (255, 128, 128)
+BLACK    = (  0,   0,   0)
+myfont = pygame.font.SysFont('Comic Sans MS', 30)
+
+
+def turnCtoN(charactor):
+    for i in range(len(charactor) - 1, -1, -1):
+        a = len(charactor[i]) - 1
+        num = 0
+        for j in range(len(charactor[i]) - 1, -1, -1):
+            c = charactor[i][j]
+            if c == '1':
+                num += 1 * (10 ** (a - j))
+            elif c == '2':
+                num += 2 * (10 ** (a - j))
+            elif c == '3':
+                num += 3 * (10 ** (a - j))
+            elif c == '4':
+                num += 4 * (10 ** (a - j))
+            elif c == '5':
+                num += 5 * (10 ** (a - j))
+            elif c == '6':
+                num += 6 * (10 ** (a - j))
+            elif c == '7':
+                num += 7 * (10 ** (a - j))
+            elif c == '8':
+                num += 8 * (10 ** (a - j))
+            elif c == '9':
+                num += 9 * (10 ** (a - j))
+            elif c == '0':
+                num += 0 * (10 ** (a - j))
+            charactor[i].pop(j)
+        charactor.pop(i)
+        charactor.append(num)
+    print(charactor)
+    for i in range(int(len(charactor)/2)):
+        a = charactor[i]
+        b = charactor[len(charactor) - i - 1]
+        charactor[i] = b
+        charactor[len(charactor) - i - 1] = a
+    return()
+
+
+last_time1 = 0
+last_time2 = 0
+last_time3 = 0
+sun = []
+board = []
+zombie_data = []
+zombie_working = []
+file = open('zombie.txt', 'r')
+for line in file:
+    data = [[]]
+    count = 0
+    for i in range(len(line)):
+        if line[i] == ' ':
+            count += 1
+            data.append([])
+        elif line[i] != '\n':
+            data[count].append(line[i])
+    turnCtoN(data)
+    zombie_data.append(data)
+print(zombie_data)
+sun_point = 0
+actor_type = False
+for i in range(5):
+    board.append([[0]*9])
+time_init = pygame.time.get_ticks()
+
+
+def score(x, y, s, color):
+    digit = 0
+    while True:
+        digit += 1
+        j = int(s/(10**digit))
+        if j == 0:
+            break
+    for i in range(digit):
+        a = 10**(digit-i-1)
+        b = int(s/a)
+        if b == 1:
+            PRINT = '1'
+        elif b == 2:
+            PRINT = '2'
+        elif b == 3:
+            PRINT = '3'
+        elif b == 4:
+            PRINT = '4'
+        elif b == 5:
+            PRINT = '5'
+        elif b == 6:
+            PRINT = '6'
+        elif b == 7:
+            PRINT = '7'
+        elif b == 8:
+            PRINT = '8'
+        elif b == 9:
+            PRINT = '9'
+        elif b == 0:
+            PRINT = '0'
+        text = myfont.render(PRINT, False, color)
+        S.blit(text, (x, y))
+        x += 20
+        s -= a * b
+
+
+def draw_board():
+    width = 125
+    pygame.draw.rect(S, BLACK, ((0, 0), (X, Y)), 0)
+    pygame.draw.rect(S, (255, 80, 50), ((0, 0), (800, width)), 0)
+    for i in range(5):
+        for j in range(9):
+            x = width * j + 50
+            y = width * (i + 1)
+            pygame.draw.rect(S, (75, 150, 75), ((x, y), (width, width)), 0)
+            pygame.draw.rect(S, (100, 200, 100), ((x + 10, y + 10), (width - 20, width - 20)), 0)
+    for i in range(9):
+        x = 100 + i * 70
+        y = 5
+        pygame.draw.rect(S, (255, 255, 255), ((x, y), (65, 115)), 0)
+
+
+def sun_production():
+    global last_time1, last_time2, sun_point, actor_type
+    t = pygame.time.get_ticks()
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+    if t - last_time1 >= 5000:
+        last_time1 += 5000
+        x = random.randint(50, X - 50)
+        y = 0
+        sun.append([x, y])
+    if t - last_time2 >= 20:
+        last_time2 += 20
+        if len(sun) > 0:
+            for i in range(len(sun) - 1, -1, -1):
+                x, y = sun[i]
+                if y <= Y - 50:
+                    y += 1
+                    sun[i][1] = y
+    if len(sun) > 0:
+        for i in range(len(sun) - 1, -1, -1):
+            x, y = sun[i]
+            pygame.draw.circle(S, YELLOW, (x, y), 20, 0)
+            if actor_type and -50 < mouse_x - x < 50 and -50 < mouse_y - y < 50:
+                sun.pop(i)
+                sun_point += 50
+    score(10, 80, sun_point, BLUE)
+
+
+def game():
+    global actor_type, time_init
+    t = pygame.time.get_ticks() - time_init
+    sun_production()
+    draw_board()
+    zombie()
+    for i in range(len(zombie_data) - 1, -1, -1):
+        if t - 20 <= zombie_data[i][0] <= t + 20:
+            line = zombie_data[i][1]
+            type = zombie_data[i][2]
+            x = X
+            zombie_working.append([x, line, type])
+            zombie_data.pop(i)
+            print(zombie_working)
+    for ev in pygame.event.get():
+        if ev.type == MOUSEBUTTONDOWN:
+            if ev.button == 1:
+                actor_type = True
+        else:
+            actor_type = False
+        if ev.type == QUIT:
+            pygame.quit()
+            sys.exit()
+
+
+def zombie():
+    if len(zombie_working) != 0:
+        for i in range(len(zombie_working) - 1, -1, -1):
+            pass
+
+
+while True:
+    game()
+    pygame.display.update()
