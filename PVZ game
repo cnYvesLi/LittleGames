@@ -63,13 +63,19 @@ def turnCtoN(charactor):
     return()
 
 
+t = 0
 last_time1 = 0
 last_time2 = 0
 last_time3 = 0
+plant_type = 0
+plant = 0
+price = 0
+blood = 0
 sun = []
 board = []
 zombie_data = []
 zombie_working = []
+bullet = []
 file = open('zombie.txt', 'r')
 for line in file:
     data = [[]]
@@ -83,10 +89,12 @@ for line in file:
     turnCtoN(data)
     zombie_data.append(data)
 print(zombie_data)
-sun_point = 0
+sun_point = 3000
 actor_type = False
 for i in range(5):
-    board.append([[0]*9])
+    board.append([])
+    for j in range(9):
+        board[i].append([0, 0])
 time_init = pygame.time.get_ticks()
 
 
@@ -143,11 +151,10 @@ def draw_board():
 
 
 def sun_production():
-    global last_time1, last_time2, sun_point, actor_type
-    t = pygame.time.get_ticks()
+    global last_time1, last_time2, sun_point, actor_type, t
     mouse_x, mouse_y = pygame.mouse.get_pos()
-    if t - last_time1 >= 5000:
-        last_time1 += 5000
+    if last_time1 + 5000 <= t:
+        last_time1 = t
         x = random.randint(50, X - 50)
         y = 0
         sun.append([x, y])
@@ -170,10 +177,11 @@ def sun_production():
 
 
 def game():
-    global actor_type, time_init
+    global actor_type, time_init, t
     t = pygame.time.get_ticks() - time_init
-    sun_production()
     draw_board()
+    sun_production()
+    plants()
     zombie()
     for i in range(len(zombie_data) - 1, -1, -1):
         if t - 20 <= zombie_data[i][0] <= t + 20:
@@ -182,22 +190,102 @@ def game():
             x = X
             zombie_working.append([x, line, type])
             zombie_data.pop(i)
-            print(zombie_working)
     for ev in pygame.event.get():
         if ev.type == MOUSEBUTTONDOWN:
             if ev.button == 1:
                 actor_type = True
-        else:
-            actor_type = False
+        elif ev.type == MOUSEBUTTONUP:
+            if ev.button == 1:
+                actor_type = False
         if ev.type == QUIT:
             pygame.quit()
             sys.exit()
 
 
 def zombie():
+    global t, last_time3
     if len(zombie_working) != 0:
         for i in range(len(zombie_working) - 1, -1, -1):
-            pass
+            if len(zombie_working[i]) < 4:
+                if zombie_working[i][2] == 1:
+                    speed = random.randint(10, 15)
+                    HP = 270
+                    state = 'walking'
+                    zombie_working[i].append(speed)
+                    zombie_working[i].append(HP)
+                    zombie_working[i].append(state)
+            x, line, type, speed, HP, state = zombie_working[i]
+            width = 125
+            y = width * line - 25
+            if state == 'walking':
+                pygame.draw.rect(S, NAVYBLUE, ((int(x), y), (30, width)), 0)
+            elif state == 'eating':
+                pygame.draw.rect(S, GREY, ((int(x), y), (30, width)), 0)
+        for i in range(len(zombie_working) - 1, -1, -1):
+            x, line, type, speed, HP_z, state = zombie_working[i]
+            column = int((x - 50) / 125)
+            line -= 1
+            if column < 9:
+                TYPE, HP_p = board[line][column]
+                if HP_p > 0 and TYPE != 0:
+                    state = 'eating'
+                    zombie_working[i][5] = state
+                else:
+                    state = 'walking'
+                    zombie_working[i][5] = state
+        if last_time3 + 40 <= t:
+            last_time3 = t
+            for i in range(len(zombie_working) - 1, -1, -1):
+                x, line, type, speed, HP, state = zombie_working[i]
+                if state == 'walking':
+                    x -= speed/20
+                zombie_working[i][0] = x
+            for i in range(len(zombie_working) - 1, -1, -1):
+                x, line, type, speed, HP_z, state = zombie_working[i]
+                column = int((x - 50) / 125)
+                line -= 1
+                if column < 9:
+                    TYPE, HP_p = board[line][column]
+                    if HP_p > 0 and TYPE != 0:
+                        HP_p -= 4
+                        board[line][column][1] = HP_p
+
+
+def plants():
+    global actor_type, plant_type, sun_point, plant, price, blood
+    x, y = pygame.mouse.get_pos()
+    line = -1
+    column = -1
+    width = 125
+    if plant_type > 0:
+        pygame.draw.rect(S, WHITE, ((x - 30, y - 60), (65, 120)), 0)
+        if 50 < x <= 1175 and 125 < y <= 750:
+            line = int(y / 125) - 1
+            column = int((x - 50) / 125)
+    if actor_type:
+        if 5 <= y <= 120 and 100 <= x <= 730:
+            plant_type = int((x - 100) / 70) + 1
+            if plant_type == 1:
+                plant = 'Peathshooter'
+                price = 100
+                blood = 300
+    else:
+        plant_type = 0
+        if line != -1 and sun_point >= price:
+            sun_point -= price
+            if board[line][column] == [0, 0]:
+                board[line][column][0] = plant
+                board[line][column][1] = blood
+    for i in range(5):
+        for j in range(9):
+            TYPE, HP = board[i][j]
+            x = width * j + 50
+            y = width * (i + 1)
+            if HP <= 0:
+                board[i][j][0] = 0
+                board[i][j][1] = 0
+            if TYPE == 'Peathshooter':
+                pygame.draw.circle(S, GREEN, (x + 62, y + 62), 40)
 
 
 while True:
